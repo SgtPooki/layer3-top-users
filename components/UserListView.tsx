@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { UserData } from './TopUserView';
 
 interface UserListViewProps {
@@ -13,9 +14,10 @@ export function UserListView({ users }: UserListViewProps) {
       <h2 className="text-2xl font-bold mb-6 text-center">Other Users</h2>
       <div className="space-y-3">
         {users.map((user) => (
-          <div
+          <Link
             key={user.address}
-            className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 hover:shadow-md transition-shadow"
+            href={`/user/${user.address}`}
+            className="user-clickable flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 hover:shadow-md transition-shadow"
           >
             <div className="flex-shrink-0 w-8 text-center font-bold text-gray-500">
               #{user.rank}
@@ -25,6 +27,7 @@ export function UserListView({ users }: UserListViewProps) {
                 src={`/api/avatar/${user.avatarCid}`}
                 alt={user.username}
                 fill
+                sizes="48px"
                 className="rounded-full object-cover"
               />
             </div>
@@ -38,7 +41,7 @@ export function UserListView({ users }: UserListViewProps) {
               <p className="font-semibold">{user.xp.toLocaleString()}</p>
               <p className="text-xs text-gray-600 dark:text-gray-400">XP</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

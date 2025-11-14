@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.user-clickable,
+.user-clickable :where(*, *::before, *::after) {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}

@@ -2,6 +2,31 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Variables
+
+Before running the development server, you need to set up your environment variables:
+
+1. Copy the example environment file:
+   ```bash
+   cp example.env .env
+   ```
+
+2. Get your Ankr API key:
+   - Visit [https://www.ankr.com/rpc/projects/](https://www.ankr.com/rpc/projects/)
+   - Sign in or create an account
+   - Copy your API key from the projects page
+
+3. Edit `.env` and replace `INSERT_YOUR_ANKR_TOKEN` with your actual Ankr API key:
+   ```
+   ANKR_API_KEY=your_actual_api_key_here
+   ```
+
+4. Next.js automatically loads environment variables from `.env` files at build time and runtime (no additional configuration needed). Make sure to restart your development server after creating or modifying the `.env` file for changes to take effect.
+
+> **Note:** Never commit your `.env` file to version control. The `.env` file is already included in `.gitignore`.
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash
