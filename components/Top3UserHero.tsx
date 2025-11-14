@@ -20,7 +20,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
         <div className="flex flex-col items-center mb-8">
           <div className="relative w-20 h-20 mb-3">
             <Image
-              src={`https://ipfs.io/ipfs/${second.avatarCid}`}
+              src={`/api/avatar/${second.avatarCid}`}
               alt={second.username}
               fill
               className="rounded-full object-cover border-4 border-gray-300"
@@ -45,7 +45,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
         <div className="flex flex-col items-center mb-12">
           <div className="relative w-28 h-28 mb-4">
             <Image
-              src={`https://ipfs.io/ipfs/${first.avatarCid}`}
+              src={`/api/avatar/${first.avatarCid}`}
               alt={first.username}
               fill
               className="rounded-full object-cover border-4 border-yellow-400"
@@ -70,7 +70,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
         <div className="flex flex-col items-center mb-4">
           <div className="relative w-16 h-16 mb-2">
             <Image
-              src={`https://ipfs.io/ipfs/${third.avatarCid}`}
+              src={`/api/avatar/${third.avatarCid}`}
               alt={third.username}
               fill
               className="rounded-full object-cover border-4 border-orange-300"

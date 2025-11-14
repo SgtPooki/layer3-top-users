@@ -10,7 +10,7 @@ export function UserListView({ users }: UserListViewProps) {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
-      <h2 className="text-2xl font-bold mb-6 text-center">Other Top Users</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">Other Users</h2>
       <div className="space-y-3">
         {users.map((user) => (
           <div
@@ -22,7 +22,7 @@ export function UserListView({ users }: UserListViewProps) {
             </div>
             <div className="relative w-12 h-12 flex-shrink-0">
               <Image
-                src={`https://ipfs.io/ipfs/${user.avatarCid}`}
+                src={`/api/avatar/${user.avatarCid}`}
                 alt={user.username}
                 fill
                 className="rounded-full object-cover"
