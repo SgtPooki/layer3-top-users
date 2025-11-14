@@ -1,4 +1,5 @@
 import { UserData } from '@/components/TopUserView';
+import { WalletInfo } from '@/components/WalletInfo';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -112,6 +113,9 @@ export default async function UserPage({
             </div>
           </div>
         </div>
+
+        {/* Wallet Information */}
+        <WalletInfo walletAddress={user.address} />
       </div>
     </div>
   );
