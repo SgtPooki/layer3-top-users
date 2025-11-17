@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     '@helia/http',
     '@helia/verified-fetch',
-    'helia',
-    'datastore-fs',
-    'blockstore-fs',
   ],
 };
 
