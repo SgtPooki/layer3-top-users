@@ -50,8 +50,16 @@ export async function GET(
     logger.info('Cache miss - fetching wallet data from Ankr API', { address });
     const walletData = await getWalletData(address, apiKey);
 
-    // Save to cache
-    saveWalletData(address, walletData);
+    // Save to cache (non-blocking - if cache save fails, still return data)
+    try {
+      saveWalletData(address, walletData);
+    } catch (cacheError) {
+      logger.error('Failed to save wallet data to cache', {
+        address,
+        error: cacheError instanceof Error ? cacheError.message : 'Unknown error',
+      });
+      // Continue - cache failure shouldn't break the request
+    }
 
     return NextResponse.json(walletData, {
       headers: {

@@ -67,13 +67,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Get verified fetch instance and use it to fetch from IPFS
     const verifiedFetch = await getVerifiedFetch();
-    const response = await verifiedFetch(`ipfs://${cid}`);
+    let response: Response;
+
+    try {
+      response = await verifiedFetch(`ipfs://${cid}`);
+    } catch (fetchError) {
+      logger.error('Error during IPFS fetch', {
+        cid,
+        errorName: fetchError instanceof Error ? fetchError.name : 'Unknown',
+        errorMessage: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        errorStack: fetchError instanceof Error ? fetchError.stack : undefined,
+      });
+      throw fetchError;
+    }
 
     if (!response.ok) {
       logger.error('Failed to fetch IPFS content', {
         cid,
         status: response.status,
         statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
       });
       return NextResponse.json(
         { error: 'Failed to fetch image from IPFS' },
@@ -89,18 +102,33 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers,
     });
   } catch (error) {
-    logger.error('Error fetching avatar from IPFS', {
-      cid: (await params).cid,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    const { cid } = await params;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorName = error instanceof Error ? error.name : 'Unknown';
+
+    logger.error('Error fetching avatar from IPFS', {
+      cid,
+      errorName,
+      errorMessage,
+      errorStack: error instanceof Error ? error.stack : undefined,
+      errorString: String(error),
+    });
+
+    // Return more specific status codes based on error type
+    let statusCode = 500;
+    if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+      statusCode = 504; // Gateway Timeout
+    }
 
     return NextResponse.json(
       {
         error: 'Internal server error while fetching avatar',
-        ...(process.env.NODE_ENV === 'development' && { details: errorMessage })
+        ...(process.env.NODE_ENV === 'development' && {
+          details: errorMessage,
+          errorName,
+        })
       },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }

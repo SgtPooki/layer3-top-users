@@ -73,7 +73,7 @@ export default function proxy() {
   return response;
 }
 
-// Configure which routes the middleware runs on
+// Configure which routes the proxy runs on
 export const config = {
   matcher: [
     /*

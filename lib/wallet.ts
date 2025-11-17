@@ -18,7 +18,31 @@
  * - Use API routes as proxy to protect API keys
  */
 
+import { logger } from './logger';
+
 const ANKR_API_BASE = 'https://rpc.ankr.com/multichain';
+const FETCH_TIMEOUT = 10000; // 10 seconds
+
+// Helper function to add timeout to fetch
+async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timeout: API did not respond within ${timeout}ms`);
+    }
+    throw error;
+  }
+}
 
 export interface TokenBalance {
   blockchain: string;
@@ -110,22 +134,26 @@ export async function getWalletBalances(
 ): Promise<TokenBalance[]> {
   try {
     // Ankr Advanced API format: https://rpc.ankr.com/multichain/{api_key}
-    const response = await fetch(`${ANKR_API_BASE}/${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'ankr_getAccountBalance',
-        params: {
-          blockchain: [], // Empty array queries all supported blockchains
-          walletAddress,
-          pageSize: 50,
+    const response = await fetchWithTimeout(
+      `${ANKR_API_BASE}/${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        id: 1,
-      }),
-    });
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'ankr_getAccountBalance',
+          params: {
+            blockchain: [], // Empty array queries all supported blockchains
+            walletAddress,
+            pageSize: 50,
+          },
+          id: 1,
+        }),
+      },
+      FETCH_TIMEOUT
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to fetch balances: ${response.statusText}`);
@@ -139,7 +167,10 @@ export async function getWalletBalances(
 
     return data.result?.assets || [];
   } catch (error) {
-    console.error('Error fetching wallet balances:', error);
+    logger.error('Error fetching wallet balances', {
+      walletAddress,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return [];
   }
 }
@@ -175,21 +206,25 @@ export async function getWalletNFTs(
   apiKey: string
 ): Promise<{ nfts: NFT[]; poaps: NFT[] }> {
   try {
-    const response = await fetch(`${ANKR_API_BASE}/${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'ankr_getNFTsByOwner',
-        params: {
-          walletAddress,
-          pageSize: 50,
+    const response = await fetchWithTimeout(
+      `${ANKR_API_BASE}/${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        id: 1,
-      }),
-    });
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'ankr_getNFTsByOwner',
+          params: {
+            walletAddress,
+            pageSize: 50,
+          },
+          id: 1,
+        }),
+      },
+      FETCH_TIMEOUT
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to fetch NFTs: ${response.statusText}`);
@@ -217,7 +252,10 @@ export async function getWalletNFTs(
 
     return { nfts, poaps };
   } catch (error) {
-    console.error('Error fetching wallet NFTs:', error);
+    logger.error('Error fetching wallet NFTs', {
+      walletAddress,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return { nfts: [], poaps: [] };
   }
 }
@@ -254,23 +292,27 @@ export async function getWalletTransactions(
 ): Promise<Transaction[]> {
   try {
     // Using Ankr's query API to get transactions
-    const response = await fetch(`${ANKR_API_BASE}/${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'ankr_getTransactionsByAddress',
-        params: {
-          blockchain: [],
-          address: walletAddress,
-          pageSize: limit,
-          descOrder: true,
+    const response = await fetchWithTimeout(
+      `${ANKR_API_BASE}/${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        id: 1,
-      }),
-    });
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'ankr_getTransactionsByAddress',
+          params: {
+            blockchain: [],
+            address: walletAddress,
+            pageSize: limit,
+            descOrder: true,
+          },
+          id: 1,
+        }),
+      },
+      FETCH_TIMEOUT
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to fetch transactions: ${response.statusText}`);
@@ -284,7 +326,10 @@ export async function getWalletTransactions(
 
     return data.result?.transactions || [];
   } catch (error) {
-    console.error('Error fetching wallet transactions:', error);
+    logger.error('Error fetching wallet transactions', {
+      walletAddress,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return [];
   }
 }
@@ -424,7 +469,10 @@ export async function getWalletData(
       lastTransaction,
     };
   } catch (error) {
-    console.error('Error fetching wallet data:', error);
+    logger.error('Error fetching wallet data', {
+      walletAddress,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return {
       balances: [],
       nfts: [],

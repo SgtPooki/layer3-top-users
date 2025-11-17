@@ -13,7 +13,9 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import type { UserData } from './types';
+import { logger } from './logger';
 
 interface CachedUser extends UserData {
   expiresAt: number;
@@ -52,46 +54,62 @@ function getDb(): Database.Database {
     } else {
       dbName = 'cache.db';
     }
-    const dbPath = path.join(process.cwd(), 'data', dbName);
-    dbInstance = new Database(dbPath);
+    const dbDir = path.join(process.cwd(), 'data');
+    const dbPath = path.join(dbDir, dbName);
 
-    // Enable WAL mode for better concurrent access
-    dbInstance.pragma('journal_mode = WAL');
+    try {
+      // Ensure data directory exists
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+        logger.info('Created data directory', { dbDir });
+      }
 
-    // Create tables
-    dbInstance.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        address TEXT PRIMARY KEY,
-        rank INTEGER NOT NULL,
-        username TEXT NOT NULL,
-        avatar_cid TEXT NOT NULL,
-        gm_streak INTEGER NOT NULL,
-        xp INTEGER NOT NULL,
-        level INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL
-      );
+      dbInstance = new Database(dbPath);
 
-      CREATE INDEX IF NOT EXISTS idx_users_expires_at ON users(expires_at);
-      CREATE INDEX IF NOT EXISTS idx_users_rank ON users(rank);
+      // Enable WAL mode for better concurrent access
+      dbInstance.pragma('journal_mode = WAL');
 
-      CREATE TABLE IF NOT EXISTS wallet_data (
-        address TEXT PRIMARY KEY,
-        data TEXT NOT NULL,
-        expires_at INTEGER NOT NULL
-      );
+      // Create tables
+      dbInstance.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          address TEXT PRIMARY KEY,
+          rank INTEGER NOT NULL,
+          username TEXT NOT NULL,
+          avatar_cid TEXT NOT NULL,
+          gm_streak INTEGER NOT NULL,
+          xp INTEGER NOT NULL,
+          level INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL
+        );
 
-      CREATE INDEX IF NOT EXISTS idx_wallet_expires_at ON wallet_data(expires_at);
+        CREATE INDEX IF NOT EXISTS idx_users_expires_at ON users(expires_at);
+        CREATE INDEX IF NOT EXISTS idx_users_rank ON users(rank);
 
-      CREATE TABLE IF NOT EXISTS avatars (
-        cid TEXT PRIMARY KEY,
-        expires_at INTEGER NOT NULL
-      );
+        CREATE TABLE IF NOT EXISTS wallet_data (
+          address TEXT PRIMARY KEY,
+          data TEXT NOT NULL,
+          expires_at INTEGER NOT NULL
+        );
 
-      CREATE INDEX IF NOT EXISTS idx_avatars_expires_at ON avatars(expires_at);
-    `);
+        CREATE INDEX IF NOT EXISTS idx_wallet_expires_at ON wallet_data(expires_at);
 
-    // Clean up expired entries on startup
-    cleanExpiredEntries();
+        CREATE TABLE IF NOT EXISTS avatars (
+          cid TEXT PRIMARY KEY,
+          expires_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_avatars_expires_at ON avatars(expires_at);
+      `);
+
+      // Clean up expired entries on startup
+      cleanExpiredEntries();
+    } catch (error) {
+      logger.error('Failed to initialize database', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        dbPath,
+      });
+      throw error; // Re-throw to prevent silent failures
+    }
   }
 
   return dbInstance;
@@ -115,11 +133,53 @@ function cleanExpiredEntries(): void {
 }
 
 /**
+ * Validate user data structure before saving
+ */
+function isValidUserData(user: unknown): user is UserData {
+  if (!user || typeof user !== 'object') return false;
+  const u = user as Record<string, unknown>;
+  return (
+    typeof u.address === 'string' &&
+    u.address.length > 0 &&
+    u.address.length <= 100 &&
+    typeof u.rank === 'number' &&
+    u.rank >= 0 &&
+    typeof u.username === 'string' &&
+    u.username.length > 0 &&
+    u.username.length <= 200 &&
+    typeof u.avatarCid === 'string' &&
+    u.avatarCid.length > 0 &&
+    u.avatarCid.length <= 200 &&
+    typeof u.gmStreak === 'number' &&
+    u.gmStreak >= 0 &&
+    typeof u.xp === 'number' &&
+    u.xp >= 0 &&
+    typeof u.level === 'number' &&
+    u.level >= 0
+  );
+}
+
+/**
  * Save Layer3 users to database with 24hr expiration
  */
 export function saveUsers(users: UserData[]): void {
   const db = getDb();
   const expiresAt = Date.now() + TTL_MS;
+
+  // Filter out invalid users to prevent corrupted data
+  const validUsers = users.filter(isValidUserData);
+  if (validUsers.length !== users.length) {
+    logger.warn('Filtered out invalid users', {
+      total: users.length,
+      valid: validUsers.length,
+      filtered: users.length - validUsers.length,
+    });
+  }
+
+  if (validUsers.length === 0) {
+    logger.warn('No valid users to save');
+    return;
+  }
 
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO users (address, rank, username, avatar_cid, gm_streak, xp, level, expires_at)
@@ -327,27 +387,47 @@ export function getWalletData(address: string): unknown | null {
   // Check in-memory cache first
   const cached = walletCache.get(normalizedAddress);
   if (cached && cached.expiresAt > now) {
-    return JSON.parse(cached.data);
+    try {
+      return JSON.parse(cached.data);
+    } catch (error) {
+      // Corrupted cache data - remove from cache and fall through to database
+      logger.error('Failed to parse cached wallet data', {
+        address: normalizedAddress,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      walletCache.delete(normalizedAddress);
+    }
   }
 
   // Check database
   const db = getDb();
   const result = db
-    .prepare('SELECT data FROM wallet_data WHERE address = ? AND expires_at > ?')
-    .get(normalizedAddress, now) as { data: string } | undefined;
+    .prepare('SELECT data, expires_at FROM wallet_data WHERE address = ? AND expires_at > ?')
+    .get(normalizedAddress, now) as { data: string; expires_at: number } | undefined;
 
   if (!result) {
     return null;
   }
 
-  // Update cache
-  walletCache.set(normalizedAddress, {
-    address: normalizedAddress,
-    data: result.data,
-    expiresAt: now + TTL_MS,
-  });
-
-  return JSON.parse(result.data);
+  // Update cache with actual expiration time from database
+  try {
+    const parsed = JSON.parse(result.data);
+    walletCache.set(normalizedAddress, {
+      address: normalizedAddress,
+      data: result.data,
+      expiresAt: result.expires_at,
+    });
+    return parsed;
+  } catch (error) {
+    // Corrupted database data - delete it and return null
+    logger.error('Failed to parse wallet data from database', {
+      address: normalizedAddress,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    // Delete corrupted entry
+    db.prepare('DELETE FROM wallet_data WHERE address = ?').run(normalizedAddress);
+    return null;
+  }
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { UserData, UsersApiResponse } from './types';
 import { getUsers as getCachedUsers, getUserByAddress as getCachedUserByAddress } from './db';
+import { logger } from './logger';
 
 /**
  * Fetches the list of top Layer3 users.
@@ -13,7 +14,7 @@ import { getUsers as getCachedUsers, getUserByAddress as getCachedUserByAddress 
  *
  * This function handles:
  * - Environment-aware URL construction (local, Vercel, or custom)
- * - Automatic revalidation every 60 seconds (ISR)
+ * - HTTP caching with 60s CDN cache
  * - Error handling with graceful degradation
  * - Response validation
  *
@@ -29,7 +30,7 @@ import { getUsers as getCachedUsers, getUserByAddress as getCachedUserByAddress 
  *
  * @remarks
  * - Server: Uses DB cache with 24hr TTL, falls back to API
- * - Client: Uses Next.js ISR with 60s revalidation for optimal performance
+ * - Client: Uses HTTP caching with 60s CDN cache for optimal performance
  * - Returns empty array on error to prevent page crashes
  * - Logs errors to console for debugging
  */
@@ -53,7 +54,7 @@ export async function getUsers(): Promise<UserData[]> {
     const apiUrl = `${baseUrl}/api/users`;
 
     const response = await fetch(apiUrl, {
-      next: { revalidate: 60 }, // ISR: Revalidate every 60 seconds
+      next: { revalidate: 60 }, // HTTP cache: Revalidate every 60 seconds
       headers: {
         'Content-Type': 'application/json',
       },
@@ -73,7 +74,9 @@ export async function getUsers(): Promise<UserData[]> {
 
     return data.users.sort((a, b) => a.rank - b.rank);
   } catch (error) {
-    console.error('Error fetching users:', error);
+    logger.error('Error fetching users', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     // Return empty array on error to prevent page crash
     // In production, consider using error boundaries or Sentry logging
     return [];
