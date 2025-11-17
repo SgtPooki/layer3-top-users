@@ -140,18 +140,19 @@ Proxy implements OWASP recommended headers:
 
 ## Deployment
 
-### Vercel (Recommended)
+### Self-host (small VM)
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
+- Build locally with `output: 'standalone'`, then sync `.next/standalone`, `.next/static`, `public`, and `package*.json` to the server.
+- On a 1 vCPU / 1 GB droplet we add a temporary swapfile during deploy to survive `npm ci --omit=dev`.
+- Systemd service runs `node .next/standalone/server.js` with `NODE_ENV=production`, `HOSTNAME=0.0.0.0`, `PORT=3000`.
+- Keep data writable: `CACHE_DB_DIR` can point to `data/`; ensure the service user owns `data/` and `.next/standalone/.next/cache`.
 
-# Deploy
-vercel
-
-# Set environment variables in Vercel dashboard
-# Required: ANKR_API_KEY
-```
+See `example.env` for the deployment variables used by `deploy.sh`:
+- `REMOTE_HOST`
+- `REMOTE_DIR`
+- `SERVICE_USER`
+- `SERVICE_NAME`
+- `DEPLOY_SWAP_SIZE_GB`
 
 ### Environment Variables
 

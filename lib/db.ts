@@ -41,6 +41,21 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 /**
  * Get or create database singleton instance
  */
+function resolveDbDir(): string {
+  if (process.env.CACHE_DB_DIR) {
+    return path.resolve(process.env.CACHE_DB_DIR);
+  }
+
+  const cwd = process.cwd();
+
+  // When running the standalone bundle, cwd may be .next/standalone; back out to project root.
+  if (cwd.endsWith(path.join('.next', 'standalone'))) {
+    return path.resolve(cwd, '..', '..', 'data');
+  }
+
+  return path.join(cwd, 'data');
+}
+
 function getDb(): Database.Database {
   if (!dbInstance) {
     // Use separate database for E2E tests to avoid polluting production data
@@ -54,7 +69,7 @@ function getDb(): Database.Database {
     } else {
       dbName = 'cache.db';
     }
-    const dbDir = path.join(process.cwd(), 'data');
+    const dbDir = resolveDbDir();
     const dbPath = path.join(dbDir, dbName);
 
     try {
