@@ -3,10 +3,21 @@ import type { VerifiedFetch } from '@helia/verified-fetch';
 import type { Helia } from '@helia/interface';
 import { createHeliaHTTP } from '@helia/http';
 import { createVerifiedFetch } from '@helia/verified-fetch';
+import { isAvatarAllowed } from '@/lib/db';
 
 // Create long-running singleton instances that persist while the Next.js server is running
 let heliaInstance: Helia | null = null;
 let verifiedFetchInstance: VerifiedFetch | null = null;
+
+// Mocking controls for tests/local development
+const shouldMockIpfs =
+  process.env.NODE_ENV === 'test' || process.env.MOCK_IPFS === 'true';
+
+// 1x1 transparent PNG fallback for mocked responses
+const mockAvatarPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
 
 async function getVerifiedFetch() {
   if (!heliaInstance) {
@@ -30,6 +41,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { error: 'CID parameter is required' },
         { status: 400 }
       );
+    }
+
+    // Security: Only allow avatar lookups for CIDs from Layer3 API users
+    if (!isAvatarAllowed(cid)) {
+      return NextResponse.json(
+        { error: 'Avatar retrieval not allowed for non-top users' },
+        { status: 403 }
+      );
+    }
+
+    // In tests/local dev we short-circuit IPFS calls to avoid network access
+    if (shouldMockIpfs) {
+      return new NextResponse(mockAvatarPng, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          // long cache since content is deterministic mock
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      });
     }
 
     // Get verified fetch instance and use it to fetch from IPFS

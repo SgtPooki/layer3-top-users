@@ -1,15 +1,8 @@
 import { Top3UserHero } from './Top3UserHero';
 import { UserListView } from './UserListView';
+import type { UserData } from '@/lib/types';
 
-export interface UserData {
-  rank: number;
-  address: string;
-  avatarCid: string;
-  username: string;
-  gmStreak: number;
-  xp: number;
-  level: number;
-}
+export type { UserData };
 
 interface TopUserViewProps {
   // sorted list of users by `user.rank`

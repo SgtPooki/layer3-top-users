@@ -41,7 +41,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
           <div className="relative w-24 h-24 mb-4">
             <Image
               src={`/api/avatar/${second.avatarCid}`}
-              alt={second.username}
+              alt={`${second.username} avatar`}
               fill
               sizes="96px"
               className="rounded-lg object-cover border-4 border-gray-300"
@@ -63,7 +63,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
           <div className="relative w-32 h-32 mb-4">
             <Image
               src={`/api/avatar/${first.avatarCid}`}
-              alt={first.username}
+              alt={`${first.username} avatar`}
               fill
               sizes="128px"
               loading="eager"
@@ -87,7 +87,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
           <div className="relative w-20 h-20 mb-4">
             <Image
               src={`/api/avatar/${third.avatarCid}`}
-              alt={third.username}
+              alt={`${third.username} avatar`}
               fill
               sizes="80px"
               className="rounded-lg object-cover border-4 border-orange-300"

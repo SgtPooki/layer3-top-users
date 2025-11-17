@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { UserData } from '@/components/TopUserView';
+import type { UserData } from '@/lib/types';
+import { getUsers, saveUsers } from '@/lib/db';
 
 const LAYER3_API_URL = 'https://layer3.xyz/api/assignment/users';
-const CACHE_DURATION = 60; // seconds
+const CACHE_DURATION = 60; // seconds (for CDN edge caching)
 const FETCH_TIMEOUT = 10000; // 10 seconds
 
 interface Layer3ApiResponse {
@@ -32,10 +33,27 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout: numb
 
 export async function GET() {
   try {
+    // Check database cache first (24hr TTL)
+    const cachedUsers = getUsers();
+    if (cachedUsers) {
+      console.log(`Serving ${cachedUsers.length} users from database cache`);
+      return NextResponse.json(
+        { users: cachedUsers },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 2}`,
+            'X-Cache': 'HIT',
+          },
+        }
+      );
+    }
+
+    // Cache miss - fetch from Layer3 API
+    console.log('Cache miss - fetching users from Layer3 API');
     const response = await fetchWithTimeout(
       LAYER3_API_URL,
       {
-        next: { revalidate: CACHE_DURATION },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -68,6 +86,10 @@ export async function GET() {
       );
     }
 
+    // Save to database cache with 24hr expiry
+    saveUsers(data.users);
+    console.log(`Cached ${data.users.length} users to database`);
+
     // Return users array directly for easier consumption
     return NextResponse.json(
       { users: data.users },
@@ -75,6 +97,7 @@ export async function GET() {
         status: 200,
         headers: {
           'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 2}`,
+          'X-Cache': 'MISS',
         },
       }
     );

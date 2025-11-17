@@ -25,7 +25,7 @@ export function UserListView({ users }: UserListViewProps) {
             <div className="relative w-12 h-12 flex-shrink-0">
               <Image
                 src={`/api/avatar/${user.avatarCid}`}
-                alt={user.username}
+                alt={`${user.username} avatar`}
                 fill
                 sizes="48px"
                 className="rounded-full object-cover"
