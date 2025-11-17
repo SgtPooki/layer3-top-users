@@ -6,6 +6,8 @@ A Next.js application displaying Layer3's top users and their on-chain wallet da
 
 **📚 Documentation**: See [PROJECT.md](./PROJECT.md) for detailed architecture decisions, trade-offs, and design rationale.
 
+**🔗 Live Demo**: https://top-layer3-users.sgtpooki.com/
+
 ---
 
 ## Quick Start

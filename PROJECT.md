@@ -2,6 +2,8 @@
 
 Concise overview for reviewers: what it does, how it’s built, and how to operate it. For setup/commands, see `README.md`.
 
+Live demo: https://top-layer3-users.sgtpooki.com/
+
 ## Summary
 - Next.js App Router app showing Layer3’s top users with wallet/NFT/tx data.
 - BFF API routes proxy Layer3, Ankr, and IPFS; all responses cache through memory → SQLite → CDN.
@@ -68,4 +70,3 @@ The following items are standard for production systems but were intentionally o
 - `lib/` — API integrations (`wallet.ts`, `users.ts`), caching (`db.ts`), explorers, token utils.
 - `data/` — Runtime SQLite artifacts (`cache.db`, WAL).
 - `e2e/`, `__tests__/` — Playwright + Vitest.
-

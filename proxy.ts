@@ -1,46 +1,49 @@
 /**
- * Next.js Proxy for security headers
+ * Next.js Middleware for security headers
  *
  * Adds security headers to all responses to protect against common web vulnerabilities.
  * Implements OWASP recommended security headers with nonce-based CSP.
  *
- * @see {@link https://nextjs.org/docs/app/api-reference/file-conventions/proxy | Next.js Proxy}
+ * @see {@link https://nextjs.org/docs/app/api-reference/file-conventions/middleware | Next.js Middleware}
  * @see {@link https://owasp.org/www-project-secure-headers/ | OWASP Secure Headers}
  */
 
-import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default function proxy() {
-  // Generate unique nonces for this request
-  // Nonces allow specific inline scripts/styles while blocking all others
-  const scriptNonce = randomBytes(16).toString('base64');
-  const styleNonce = randomBytes(16).toString('base64');
+export function middleware(request: NextRequest) {
+  const nonce = randomBytes(16).toString('base64');
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
-  const response = NextResponse.next();
-
-  // Pass nonces to Next.js so it can add them to inline scripts/styles
-  response.headers.set('x-script-nonce', scriptNonce);
-  response.headers.set('x-style-nonce', styleNonce);
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   // Content Security Policy (CSP)
-  // Helps prevent XSS attacks by controlling which resources can be loaded
-  // Uses nonces instead of 'unsafe-inline' for better security
-  // Next.js will automatically use these nonces for its hydration scripts and streaming styles
-  response.headers.set(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      `script-src 'self' 'nonce-${scriptNonce}'`, // Allow only nonce-tagged scripts
-      `style-src 'self' 'nonce-${styleNonce}' https://fonts.googleapis.com`, // Allow nonce-tagged styles + Google Fonts CSS
-      "img-src 'self' data: https: http:", // Allow external images (NFTs, avatars, IPFS)
-      "font-src 'self' data: https://fonts.gstatic.com", // Allow Google Fonts
-      "connect-src 'self' https: http:", // Allow API calls (including IPFS gateways)
-      "frame-ancestors 'none'", // Prevent clickjacking
-      "base-uri 'self'", // Restrict base URL
-      "form-action 'self'", // Restrict form submissions
-    ].join('; ')
-  );
+  // Next.js will apply this nonce to its own inline scripts/styles.
+  // Inline style attributes (e.g., from next/image) cannot carry nonces, so allow unsafe-inline for styles.
+  const styleSrc = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com http://fonts.googleapis.com";
+
+  const scriptSrc = isDevelopment
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`;
+
+  const cspDirectives = [
+    "default-src 'self'",
+    scriptSrc,
+    styleSrc,
+    "img-src 'self' data: https: http:",
+    "font-src 'self' https://fonts.gstatic.com http://fonts.gstatic.com data:",
+    "connect-src 'self' https: http:",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ];
+
+  response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
 
   // Prevent browsers from MIME-sniffing
   // Protects against drive-by download attacks
@@ -72,6 +75,9 @@ export default function proxy() {
 
   return response;
 }
+
+// Support default export for Next.js proxy convention.
+export default middleware;
 
 // Configure which routes the proxy runs on
 export const config = {
