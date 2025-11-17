@@ -49,16 +49,16 @@ graph TD
 - E2E: Playwright smoke (`homepage.spec.ts`) for render/navigation.
 - API routes and cache layer are exercised indirectly; could add targeted cache tests if needed.
 
-## Improvements I didn't get to
-1) Add cache-behavior tests (save/read/expiry) and API route contract tests.
-2) Skeleton loaders and error boundaries for smoother UX.
-3) Pagination or infinite scroll for large token/NFT sets.
+## Next steps and ideas
+1) Skeleton loaders and error boundaries for smoother UX.
+2) Pagination or infinite scroll for large token/NFT sets.
+3) Better user page filtering.. user config for which chains and networks to show.
 
 ## Production Readiness Considerations (intentionally omitted)
 
-The following items are standard for production systems but were intentionally omitted here. They're documented to demonstrate awareness of production concerns:
+The following items are standard for production systems but were intentionally omitted here.
 
-- **Rate limiting**: Unnecessary given the caching strategy—all responses are cached (24h DB + 60s HTTP), and we only fetch from Layer3's limited top users list. Upstream API calls are minimal and infrequent.
+- **Rate limiting**: Should be unnecessary given the caching strategy—all responses are cached (24h DB + 60s HTTP), and we only fetch from Layer3's limited top users list. Upstream API calls are minimal and infrequent.
 - **Monitoring/Observability**: Metrics (Prometheus), distributed tracing (OpenTelemetry), and error tracking (Sentry) are standard but unnecessary for a demo app. Basic logging via `logger` should suffice.
 - **Health checks**: `/api/health` endpoint for load balancer checks would be standard but not needed here.
 - **Database migrations**: Schema versioning/migrations would be needed for production but SQLite schema is stable for this use case.
