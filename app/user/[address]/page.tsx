@@ -1,8 +1,8 @@
 import { WalletInfo } from '@/components/WalletInfo';
 import { getUserByAddress } from '@/lib/users';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
+import { AvatarImage } from '@/components/AvatarImage';
 
 // Disable static generation - render on demand
 export const dynamic = 'force-dynamic';
@@ -30,14 +30,14 @@ export default async function UserPage({
           {/* User Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8">
             <div className="relative w-24 h-24 flex-shrink-0">
-              <Image
+              <AvatarImage
                 src={`/api/avatar/${user.avatarCid}`}
                 alt={`${user.username} avatar`}
                 fill
                 sizes="96px"
                 className="rounded-lg object-cover border-4 border-gray-200 dark:border-zinc-700"
               />
-              <div className="absolute -top-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              <div className="absolute -top-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold z-10">
                 #{user.rank}
               </div>
             </div>

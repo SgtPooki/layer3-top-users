@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { UserData } from './TopUserView';
+import { AvatarImage } from './AvatarImage';
 
 interface Top3UserHeroProps {
   users: UserData[];
@@ -39,14 +39,14 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
         <Link href={`/user/${second.address}`} className="user-clickable flex flex-col items-center hover:opacity-80 transition-opacity">
           {/* Avatar (medium size, medium height) */}
           <div className="relative w-24 h-24 mb-4">
-            <Image
+            <AvatarImage
               src={`/api/avatar/${second.avatarCid}`}
               alt={`${second.username} avatar`}
               fill
               sizes="96px"
               className="rounded-lg object-cover border-4 border-gray-300"
             />
-            <div className="absolute -top-2 -right-2 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold">
+            <div className="absolute -top-2 -right-2 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold z-10">
               2
             </div>
           </div>
@@ -61,7 +61,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
         <Link href={`/user/${first.address}`} className="user-clickable flex flex-col items-center hover:opacity-80 transition-opacity">
           {/* Avatar (largest, positioned highest) */}
           <div className="relative w-32 h-32 mb-4">
-            <Image
+            <AvatarImage
               src={`/api/avatar/${first.avatarCid}`}
               alt={`${first.username} avatar`}
               fill
@@ -70,7 +70,7 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
               priority
               className="rounded-lg object-cover border-4 border-yellow-400"
             />
-            <div className="absolute -top-2 -right-2 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-base font-bold">
+            <div className="absolute -top-2 -right-2 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-base font-bold z-10">
               1
             </div>
           </div>
@@ -85,14 +85,14 @@ export function Top3UserHero({ users }: Top3UserHeroProps) {
         <Link href={`/user/${third.address}`} className="user-clickable flex flex-col items-center hover:opacity-80 transition-opacity">
           {/* Avatar (smallest, positioned lowest) */}
           <div className="relative w-20 h-20 mb-4">
-            <Image
+            <AvatarImage
               src={`/api/avatar/${third.avatarCid}`}
               alt={`${third.username} avatar`}
               fill
               sizes="80px"
               className="rounded-lg object-cover border-4 border-orange-300"
             />
-            <div className="absolute -top-2 -right-2 w-7 h-7 bg-orange-300 rounded-full flex items-center justify-center text-xs font-bold">
+            <div className="absolute -top-2 -right-2 w-7 h-7 bg-orange-300 rounded-full flex items-center justify-center text-xs font-bold z-10">
               3
             </div>
           </div>

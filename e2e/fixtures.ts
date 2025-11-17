@@ -35,6 +35,15 @@ const mockAvatarPng = Buffer.from(
 
 export const test = base.extend({
   page: async ({ page }, use) => {
+    // Mock users API to return mock data
+    await page.route('**/api/users', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ users: mockUsers }),
+      });
+    });
+
     // Mock wallet and avatar API routes (user data comes from seeded database)
     await page.route('**/api/wallet/*', async (route) => {
       const url = new URL(route.request().url());

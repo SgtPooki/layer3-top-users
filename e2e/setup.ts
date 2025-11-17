@@ -44,6 +44,11 @@ export function seedTestDatabase(env: string | undefined = process.env.NODE_ENV 
     return;
   }
 
+  // Ensure we're using the test database
+  if (!process.env.CACHE_DB_NAME) {
+    process.env.CACHE_DB_NAME = 'cache.test.db';
+  }
+
   saveUsers(mockUsers);
   console.log('✓ Seeded test database with mock users');
 }

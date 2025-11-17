@@ -50,6 +50,21 @@ export async function GET() {
       );
     }
 
+    // In test mode, return empty array instead of fetching from real API
+    if (process.env.NODE_ENV === 'test') {
+      logger.warn('Test mode: Cache miss but not fetching from Layer3 API');
+      return NextResponse.json(
+        { users: [] },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': `public, s-maxage=${CACHE_DURATION}`,
+            'X-Cache': 'MISS',
+          },
+        }
+      );
+    }
+
     // Cache miss - fetch from Layer3 API
     logger.info('Cache miss - fetching users from Layer3 API');
     const response = await fetchWithTimeout(

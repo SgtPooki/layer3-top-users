@@ -222,7 +222,7 @@ export function saveUsers(users: UserData[]): void {
     }
   });
 
-  transaction(users);
+  transaction(validUsers);
 }
 
 /**

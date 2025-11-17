@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { UserData } from './TopUserView';
+import { AvatarImage } from './AvatarImage';
 
 interface UserListViewProps {
   users: UserData[];
@@ -23,7 +23,7 @@ export function UserListView({ users }: UserListViewProps) {
               #{user.rank}
             </div>
             <div className="relative w-12 h-12 flex-shrink-0">
-              <Image
+              <AvatarImage
                 src={`/api/avatar/${user.avatarCid}`}
                 alt={`${user.username} avatar`}
                 fill
