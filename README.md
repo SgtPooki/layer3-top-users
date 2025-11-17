@@ -91,14 +91,14 @@ layer3-top-users/
 ├── hooks/              # Custom React hooks
 ├── __tests__/          # Unit tests
 ├── e2e/                # E2E tests
-└── middleware.ts       # Security headers
+└── proxy.ts            # Security headers
 ```
 
 ---
 
 ## Key Technologies
 
-- **Next.js 16** - App Router, Server Components, ISR
+- **Next.js 16** - App Router, Server Components, Dynamic Rendering
 - **React 19** - Latest features and hooks
 - **TypeScript** - Type safety
 - **Tailwind CSS 4** - Utility-first styling
@@ -116,20 +116,20 @@ API routes proxy external services to protect API keys and enable caching.
 ### 2. Local Caching Layer
 `better-sqlite3` + in-memory maps cache users, wallet payloads, and avatar CIDs (24h TTL) to avoid repeated Layer3/Ankr/IPFS calls and speed up cold starts.
 
-### 3. Component Refactoring
-WalletInfo component refactored from 474 → 216 lines following SOLID principles:
+### 3. Component Architecture
+WalletInfo component follows SOLID principles:
 - Custom hook for data fetching (`useWalletData`)
 - Utility functions extracted to `lib/`
 - Sub-components for reusability (`TokenBalanceCard`, `NFTCard`, etc.)
 
 ### 4. Security Headers
-Middleware implements OWASP recommended headers:
+Proxy implements OWASP recommended headers:
 - Content Security Policy (XSS protection)
 - X-Frame-Options (clickjacking protection)
 - X-Content-Type-Options (MIME-sniffing protection)
 
 ### 5. Performance Optimization
-- ISR with 60s revalidation
+- Dynamic rendering with HTTP caching (60s CDN cache, 120s stale-while-revalidate)
 - Parallel API requests with `Promise.all`
 - IPFS singleton pattern
 - Image optimization with Next.js Image
@@ -163,7 +163,7 @@ vercel
 - ✅ **TypeScript** strict mode enabled
 - ✅ **ESLint** configured for Next.js
 - ✅ **Comprehensive JSDoc** on all public functions
-- ✅ **Security headers** via middleware
+- ✅ **Security headers** via proxy
 - ✅ **Input validation** using `viem.isAddress()` for robust address checking
 - ✅ **Error handling** with graceful degradation
 
