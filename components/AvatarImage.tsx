@@ -52,7 +52,6 @@ export function AvatarImage({
           alt={alt}
           fill
           sizes={sizes}
-          unoptimized
           priority={priority}
           loading={loading}
           className={`${className || ''} ${isLoading || hasError ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
