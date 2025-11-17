@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getWalletData } from '@/lib/wallet';
 import { isAddress } from 'viem';
 import { isAddressAllowed, getWalletData as getCachedWalletData, saveWalletData } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   request: NextRequest,
@@ -36,7 +37,7 @@ export async function GET(
     // Check cache first
     const cached = getCachedWalletData(address);
     if (cached) {
-      console.log(`Serving wallet data for ${address} from cache`);
+      logger.info('Serving wallet data from cache', { address });
       return NextResponse.json(cached, {
         headers: {
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
@@ -46,7 +47,7 @@ export async function GET(
     }
 
     // Cache miss - fetch from Ankr API
-    console.log(`Cache miss - fetching wallet data for ${address} from Ankr API`);
+    logger.info('Cache miss - fetching wallet data from Ankr API', { address });
     const walletData = await getWalletData(address, apiKey);
 
     // Save to cache
@@ -59,7 +60,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching wallet data:', error);
+    logger.error('Error fetching wallet data', {
+      address: (await params).address,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     return NextResponse.json(
@@ -71,4 +75,3 @@ export async function GET(
     );
   }
 }
-

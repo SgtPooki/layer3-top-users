@@ -4,6 +4,7 @@ import type { Helia } from '@helia/interface';
 import { createHeliaHTTP } from '@helia/http';
 import { createVerifiedFetch } from '@helia/verified-fetch';
 import { isAvatarAllowed } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Create long-running singleton instances that persist while the Next.js server is running
 let heliaInstance: Helia | null = null;
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // In tests/local dev we short-circuit IPFS calls to avoid network access
     if (shouldMockIpfs) {
+      logger.info('Serving mocked avatar', { cid });
       return new NextResponse(mockAvatarPng, {
         status: 200,
         headers: {
@@ -68,7 +70,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const response = await verifiedFetch(`ipfs://${cid}`);
 
     if (!response.ok) {
-      console.error(`Failed to fetch IPFS content for CID ${cid}: ${response.status} ${response.statusText}`);
+      logger.error('Failed to fetch IPFS content', {
+        cid,
+        status: response.status,
+        statusText: response.statusText,
+      });
       return NextResponse.json(
         { error: 'Failed to fetch image from IPFS' },
         { status: response.status >= 500 ? 502 : response.status }
@@ -83,7 +89,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers,
     });
   } catch (error) {
-    console.error('Error fetching avatar from IPFS:', error);
+    logger.error('Error fetching avatar from IPFS', {
+      cid: (await params).cid,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { UserData } from '@/lib/types';
 import { getUsers, saveUsers } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const LAYER3_API_URL = 'https://layer3.xyz/api/assignment/users';
 const CACHE_DURATION = 60; // seconds (for CDN edge caching)
@@ -36,7 +37,7 @@ export async function GET() {
     // Check database cache first (24hr TTL)
     const cachedUsers = getUsers();
     if (cachedUsers) {
-      console.log(`Serving ${cachedUsers.length} users from database cache`);
+      logger.info('Serving users from database cache', { count: cachedUsers.length });
       return NextResponse.json(
         { users: cachedUsers },
         {
@@ -50,7 +51,7 @@ export async function GET() {
     }
 
     // Cache miss - fetch from Layer3 API
-    console.log('Cache miss - fetching users from Layer3 API');
+    logger.info('Cache miss - fetching users from Layer3 API');
     const response = await fetchWithTimeout(
       LAYER3_API_URL,
       {
@@ -63,7 +64,11 @@ export async function GET() {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`Layer3 API error: ${response.status} ${response.statusText}`, errorText);
+      logger.error('Layer3 API error', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
 
       return NextResponse.json(
         {
@@ -79,7 +84,7 @@ export async function GET() {
 
     // Validate response structure
     if (!data || !Array.isArray(data.users)) {
-      console.error('Invalid response structure from Layer3 API:', data);
+      logger.error('Invalid response structure from Layer3 API', { response: data });
       return NextResponse.json(
         { error: 'Invalid response format from Layer3 API' },
         { status: 502 }
@@ -88,7 +93,7 @@ export async function GET() {
 
     // Save to database cache with 24hr expiry
     saveUsers(data.users);
-    console.log(`Cached ${data.users.length} users to database`);
+    logger.info('Cached users to database', { count: data.users.length });
 
     // Return users array directly for easier consumption
     return NextResponse.json(
@@ -102,7 +107,9 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error('Error fetching users:', error);
+    logger.error('Error fetching users', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
     // Don't expose internal error details in production
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -116,4 +123,3 @@ export async function GET() {
     );
   }
 }
-

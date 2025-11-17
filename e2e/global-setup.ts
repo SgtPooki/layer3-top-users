@@ -8,10 +8,9 @@ import { seedTestDatabase } from './setup';
 async function globalSetup() {
   console.log('Setting up E2E tests...');
 
-  // Force the test environment so seeding never touches the primary cache
-  process.env.NODE_ENV = process.env.NODE_ENV ?? 'test';
+  const env = process.env.NODE_ENV ?? 'test';
 
-  seedTestDatabase();
+  seedTestDatabase(env);
   console.log('E2E test setup complete');
 }
 

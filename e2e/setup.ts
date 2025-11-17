@@ -38,9 +38,9 @@ export const mockUsers: UserData[] = [
 /**
  * Seed database with mock users for testing
  */
-export function seedTestDatabase() {
-  if (process.env.NODE_ENV !== 'test') {
-    console.warn('Skipping test database seeding because NODE_ENV is not "test"');
+export function seedTestDatabase(env: string | undefined = process.env.NODE_ENV ?? 'test') {
+  if (env !== 'test') {
+    console.warn(`Skipping test database seeding because NODE_ENV is "${env}"`);
     return;
   }
 
